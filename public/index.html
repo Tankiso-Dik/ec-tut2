@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Electronic Campus (Standalone)</title>
+  <style>
+    :root {
+      --page-bg: #4d73bf;
+      --panel-alt: #6e8dcb;
+      --panel-alt-2: #5e80c5;
+      --text: #ffffff;
+      --accent: #66ffff;
+      --chat-border: rgba(255,255,255,.5);
+      --chat-bg: rgba(0,0,0,.22);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 16px 16px 100px;
+      font-family: Arial, Helvetica, sans-serif;
+      background: radial-gradient(circle at top, #6d8fd5 0%, var(--page-bg) 44%, #3f60a9 100%);
+      color: var(--text);
+    }
+    h1 { text-align: center; margin: 0 0 12px; }
+    table { width: min(100%, 1020px); margin: 0 auto; border-collapse: collapse; }
+    th, td { border: 1px solid rgba(255,255,255,.2); padding: 10px; vertical-align: top; }
+    th { color: var(--accent); background: rgba(0,0,0,.2); }
+    tr:nth-child(odd) { background: var(--panel-alt); }
+    tr:nth-child(even) { background: var(--panel-alt-2); }
+
+    .chatbot-bar {
+      position: fixed;
+      left: 20px;
+      bottom: 20px;
+      z-index: 9999;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      padding: 6px;
+      border-radius: 10px;
+      background: rgba(20, 30, 60, 0.25);
+      backdrop-filter: blur(4px);
+    }
+    #chatbot-input {
+      width: 150px;
+      height: 32px;
+      padding: 0 10px;
+      border-radius: 8px;
+      border: 1px solid var(--chat-border);
+      background: rgba(255,255,255,.08);
+      color: #fff;
+      outline: none;
+    }
+    #chatbot-input::placeholder { color: rgba(255,255,255,.7); }
+    .chatbot-btn {
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--chat-border);
+      border-radius: 8px;
+      background: var(--chat-bg);
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .chatbot-btn.active { background: rgba(102,255,255,.35); }
+    .chatbot-btn:disabled { opacity: .4; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <h1>Electronic Campus</h1>
+  <table>
+    <thead>
+      <tr><th>Date</th><th>News Event</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><small>16:49 Tue 3rd Mar 2026</small><br>Vwa Memani</td><td><strong>WIL opportunity with BMW</strong><br>BMW is looking for Computer Science students to do their WIL.</td></tr>
+      <tr><td><small>10:29 Tue 3rd Mar 2026</small><br>J Jordaan</td><td><strong>Current ICT Time Table</strong></td></tr>
+      <tr><td><small>12:08 Mon 2nd Mar 2026</small><br>J Jordaan</td><td><strong>Lab Asset Reminder</strong></td></tr>
+    </tbody>
+  </table>
+
+  <div class="chatbot-bar" role="group" aria-label="Chatbot controls">
+    <input id="chatbot-input" type="text" autocomplete="off" placeholder="Ask..." />
+    <button id="chatbot-send" class="chatbot-btn" type="button">S</button>
+    <button id="chatbot-copy" class="chatbot-btn" type="button" disabled>C</button>
+    <button id="chatbot-copy-material" class="chatbot-btn" type="button">C</button>
+  </div>
+
+  <script>
+    const input = document.getElementById('chatbot-input');
+    const sendBtn = document.getElementById('chatbot-send');
+    const copyBtn = document.getElementById('chatbot-copy');
+    const copyMaterialBtn = document.getElementById('chatbot-copy-material');
+
+    let sending = false;
+    let latestReply = '';
+    let history = [];
+
+    function setSendState(active) {
+      sending = active;
+      sendBtn.disabled = active || !input.value.trim();
+      sendBtn.textContent = active ? '...' : 'S';
+      sendBtn.classList.toggle('active', active);
+    }
+
+    function refreshSendAvailability() {
+      if (!sending) sendBtn.disabled = !input.value.trim();
+    }
+
+    async function send() {
+      const message = input.value.trim();
+      if (!message || sending) return;
+
+      setSendState(true);
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message, history })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Chat request failed');
+
+        latestReply = String(data.reply || '').trim();
+        copyBtn.disabled = !latestReply;
+        copyBtn.classList.toggle('active', !!latestReply);
+        if (latestReply) {
+          history.push({ role: 'user', content: message }, { role: 'assistant', content: latestReply });
+        }
+        input.value = '';
+      } catch (e) {
+        latestReply = `Error: ${e.message || 'Unknown error'}`;
+        copyBtn.disabled = false;
+        copyBtn.classList.add('active');
+      } finally {
+        setSendState(false);
+        refreshSendAvailability();
+      }
+    }
+
+    input.addEventListener('input', refreshSendAvailability);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        send();
+      }
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Control' && !e.repeat) {
+        input.focus();
+        const len = input.value.length;
+        input.setSelectionRange(len, len);
+      }
+    });
+
+    sendBtn.addEventListener('click', send);
+
+    copyBtn.addEventListener('click', async () => {
+      if (!latestReply) return;
+      await navigator.clipboard.writeText(latestReply);
+      copyBtn.classList.remove('active');
+    });
+
+    copyMaterialBtn.addEventListener('click', async () => {
+      const res = await fetch('/material.txt', { cache: 'no-store' });
+      if (!res.ok) throw new Error('Failed to fetch material.txt');
+      const text = await res.text();
+      await navigator.clipboard.writeText(text);
+      copyMaterialBtn.classList.add('active');
+      setTimeout(() => copyMaterialBtn.classList.remove('active'), 1500);
+    });
+
+    refreshSendAvailability();
+  </script>
+</body>
+</html>

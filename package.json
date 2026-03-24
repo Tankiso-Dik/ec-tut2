@@ -1,0 +1,25 @@
+{
+  "name": "ec-tut1",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "portless run next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "dev:direct": "next dev",
+    "portless:list": "portless list",
+    "portless:proxy:start": "portless proxy start",
+    "portless:proxy:stop": "portless proxy stop"
+  },
+  "dependencies": {
+    "next": "^15.2.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "eslint": "9.39.3",
+    "eslint-config-next": "15.5.12",
+    "portless": "^0.5.2"
+  }
+}

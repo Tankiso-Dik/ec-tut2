@@ -1,0 +1,214 @@
+DML + SQL%ROWCOUNT, %ROWTYPE, User-defined, CASE, Variables + calculations
+
+
+
+
+
+
+
+
+
+
+
+Template 1 — DML + SQL%ROWCOUNT
+Insert
+SET SERVEROUTPUT ON
+
+BEGIN
+INSERT INTO s_student
+VALUES (98004556, 'LEROKE', 'GD', 'M', SYSDATE);
+
+DBMS_OUTPUT.PUT_LINE(SQL%ROWCOUNT || ' Record (s) Successfully Added');
+END;
+/
+
+Update
+SET SERVEROUTPUT ON
+
+BEGIN
+UPDATE s_student
+SET initials = 'GO'
+WHERE studnr = 98004556;
+
+DBMS_OUTPUT.PUT_LINE(SQL%ROWCOUNT || ' Record (s) Successfully Modified');
+END;
+/
+
+Delete
+SET SERVEROUTPUT ON
+
+BEGIN
+DELETE FROM s_student
+WHERE studnr = 98004556;
+
+DBMS_OUTPUT.PUT_LINE(SQL%ROWCOUNT || ' Record(s) Successfully Removed');
+END;
+/
+
+Undo
+ROLLBACK;
+
+This whole pattern is straight from Question 3 of the memo.
+
+
+
+
+
+
+
+
+
+
+
+Template 2 — %ROWTYPE
+SET SERVEROUTPUT ON
+
+DECLARE
+subj_rec s_subject%ROWTYPE;
+v_msg VARCHAR2(4);
+BEGIN
+SELECT *
+INTO subj_rec
+FROM s_subject
+WHERE subj_code = '&subj_code';
+
+IF subj_rec.prereq IS NULL THEN
+v_msg := 'No';
+ELSE
+v_msg := 'Yes';
+END IF;
+
+DBMS_OUTPUT.PUT_LINE('Subject Details');
+DBMS_OUTPUT.PUT_LINE('=======================================');
+DBMS_OUTPUT.PUT_LINE('Subject name: ' || subj_rec.subj_code || '-' || subj_rec.subj_name);
+DBMS_OUTPUT.PUT_LINE('Costs: ' || TO_CHAR(subj_rec.subj_fee, 'L09,999.00'));
+DBMS_OUTPUT.PUT_LINE('Prerequisite: ' || v_msg);
+END;
+/
+
+That is the main %ROWTYPE ST1 pattern.
+
+
+
+
+
+
+
+
+
+
+
+Template 3 — User-defined record + aggregates
+SET SERVEROUTPUT ON
+DEFINE student_number = 96445566
+
+DECLARE
+TYPE student_details_rec_type IS RECORD
+(
+studnr s_student.studnr%TYPE,
+initials s_student.initials%TYPE,
+surname s_student.surname%TYPE,
+num_subj NUMBER(2),
+total_fee NUMBER(6,2),
+dip_name s_diploma.dip_name%TYPE,
+fac_name s_faculty.fac_name%TYPE
+);
+
+student_details_rec student_details_rec_type;
+BEGIN
+SELECT s.studnr,
+s.initials,
+s.surname,
+COUNT(su.subj_code),
+SUM(su.subj_fee),
+d.dip_name,
+f.fac_name
+INTO student_details_rec
+FROM s_student s, s_registration r, s_subject su, s_diploma d, s_faculty f
+WHERE s.studnr = r.studnr
+AND r.subj_code = su.subj_code
+AND su.dip_code = d.dip_code
+AND d.fac_code = f.fac_code
+AND s.studnr = &student_number
+GROUP BY s.studnr, s.initials, s.surname, d.dip_name, f.fac_name;
+
+DBMS_OUTPUT.PUT_LINE('Student Details');
+DBMS_OUTPUT.PUT_LINE('=======================');
+DBMS_OUTPUT.PUT_LINE(student_details_rec.studnr || ' ' ||
+student_details_rec.initials || ' ' ||
+student_details_rec.surname);
+DBMS_OUTPUT.PUT_LINE('=======================');
+DBMS_OUTPUT.PUT_LINE('Faculty : ' || student_details_rec.fac_name);
+DBMS_OUTPUT.PUT_LINE('Diploma : ' || student_details_rec.dip_name);
+DBMS_OUTPUT.PUT_LINE('Number of subjects : ' || student_details_rec.num_subj);
+DBMS_OUTPUT.PUT_LINE('Total Amount due : ' ||
+TO_CHAR(student_details_rec.total_fee, 'L09,999.00'));
+END;
+/
+
+That is the big Stage 8–10 exam pattern from Question 5.
+
+
+
+
+
+
+1. CASE statement template
+
+SET SERVEROUTPUT ON
+
+DECLARE
+v_grade VARCHAR2(5);
+v_mark NUMBER(3) := &mark;
+BEGIN
+v_grade :=
+CASE
+WHEN v_mark >= 90 THEN 'A'
+WHEN v_mark >= 80 THEN 'B'
+WHEN v_mark >= 70 THEN 'C'
+WHEN v_mark >= 60 THEN 'D'
+WHEN v_mark >= 50 THEN 'E'
+ELSE 'Fail'
+END;
+
+DBMS_OUTPUT.PUT_LINE('Mark = ' || v_mark || ' Result is ' || v_grade);
+END;
+/
+
+
+
+
+
+
+
+
+
+
+
+
+2. Variables + calculations + TO_CHAR template
+
+SET SERVEROUTPUT ON
+
+DECLARE
+vHours NUMBER(7,2) := &hours;
+vRate NUMBER(7,2) := &rate;
+vTaxRate NUMBER(5,2) := 0.28;
+TotalTax NUMBER(7,2);
+vGrossPay NUMBER(7,2);
+vNetPay NUMBER(7,2);
+vAnnualSal NUMBER(7,2);
+BEGIN
+vGrossPay := vHours * vRate;
+TotalTax := vTaxRate * vGrossPay;
+vNetPay := vGrossPay - TotalTax;
+vAnnualSal := vGrossPay * 12;
+
+DBMS_OUTPUT.PUT_LINE('The gross pay is ' || TO_CHAR(vGrossPay,'fmL99,999.99'));
+DBMS_OUTPUT.PUT_LINE('The total tax is ' || TO_CHAR(TotalTax,'fmL99,999.99'));
+DBMS_OUTPUT.PUT_LINE('The Net pay is ' || TO_CHAR(vNetPay,'fmL99,999.99'));
+DBMS_OUTPUT.PUT_LINE('The Annual Salary is ' || TO_CHAR(vAnnualSal,'fmL99,999.99'));
+END;
+/
+
+
