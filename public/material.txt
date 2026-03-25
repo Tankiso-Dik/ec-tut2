@@ -1,4 +1,9 @@
-DML + SQL%ROWCOUNT, %ROWTYPE, User-defined, CASE, Variables + calculations
+DML + SQL%ROWCOUNT, %ROWTYPE, User-defined, CASE, Variables + calculations, 
+SQL%FOUND, SQL%NOTFOUND, SAVEPOINT, LOOPS
+
+
+
+
 
 
 
@@ -94,10 +99,6 @@ That is the main %ROWTYPE ST1 pattern.
 
 
 
-
-
-
-
 Template 3 — User-defined record + aggregates
 SET SERVEROUTPUT ON
 DEFINE student_number = 96445566
@@ -176,16 +177,6 @@ END;
 /
 
 
-
-
-
-
-
-
-
-
-
-
 2. Variables + calculations + TO_CHAR template
 
 SET SERVEROUTPUT ON
@@ -212,3 +203,75 @@ END;
 /
 
 
+
+SQL%FOUND
+
+
+IF SQL%FOUND THEN
+DBMS_OUTPUT.PUT_LINE('Student record found and updated');
+ELSE
+DBMS_OUTPUT.PUT_LINE('No student record was updated');
+END IF;
+END;
+/
+
+
+IF SQL%NOTFOUND THEN
+DBMS_OUTPUT.PUT_LINE('No record was removed');
+ELSE
+DBMS_OUTPUT.PUT_LINE('Record removed successfully');
+END IF;
+END;
+/
+
+
+SAVEPOINT
+
+SET SERVEROUTPUT ON
+
+SAVEPOINT before_change;
+
+BEGIN
+UPDATE s_student
+SET surname = 'MOLEFE'
+WHERE studnr = 980004556;
+
+DBMS_OUTPUT.PUT_LINE(SQL%ROWCOUNT }} ' record (s) changed');
+END;
+/
+
+ROLLBACK TO before_change;
+
+
+LOOPS
+
+Easy rule
+BASIC LOOP needs EXIT WHEN
+WHILE LOOP needs a changing condition
+FOR LOOP is the easiest because Oracle manages the counter
+
+
+FOR LOOP
+
+SET SERVEROUTPUT ON
+
+BEGIN
+FOR i IN 1..5 LOOP
+DBMS_OUTPUT.PUT_LINE('Number : ' || i);
+END LOOP;
+END;
+/
+
+WHILE LOOP
+
+SET SERVEROUTPUT ON
+
+DECLARE
+i NUMBER := 1;
+BEGIN
+WHILE i <= 5 LOOP
+DBMS_OUTPUT.PUT_LINE('Number : ' || i);
+i := i + 1;
+END LOOP;
+END;
+/
