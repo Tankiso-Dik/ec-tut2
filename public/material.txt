@@ -9,75 +9,35 @@ INDEX BY records must practice
 SET SERVEROUTPUT ON
 
 DECLARE
- TYPE is_subj_table_type IS TABLE OF
-   s_subject%ROWTYPE INDEX BY BINARY_INTEGER;
+TYPE is_subj_table_type IS TABLE OF
+s_subject%ROWTYPE INDEX BY BINARY_INTEGER;
 
- is_subj_table is_subj_table_type;
-
-BEGIN
- FOR i IN 1..3 LOOP
-   SELECT *
-   INTO is_subj_table(i)
-   FROM s_subject
-   WHERE SUBSTR(subj_code,1,2) = 'IS'
-   AND SUBSTR(subj_code,-1) = i;
- END LOOP;
-
- DBMS_OUTPUT.PUT_LINE('INFORMATION SYSTEMS SUBJECT CLUSTER');
- DBMS_OUTPUT.PUT_LINE('===================================');
-
- FOR i IN is_subj_table.FIRST..is_subj_table.LAST LOOP
-   DBMS_OUTPUT.PUT_LINE(is_subj_table(i).subj_code || ' - ' || is_subj_table(i).subj_name);
- END LOOP;
-
-END;
-/       
-
-
-
-
-
-
-
-
-
-Explicit Cursor With Attributes
-
-
-
-SET SERVEROUTPUT ON;
-
-DECLARE
-
-  CURSOR fac_cur IS
-     SELECT fac_code, fac_name
-     FROM s_faculty;
-
-  v_fac_code s_faculty.fac_code%TYPE;
-  v_fac_name s_faculty.fac_name%TYPE;
+is_subj_table is_subj_table_type;
 
 BEGIN
+FOR i IN 1..3 LOOP
+SELECT *
+INTO is_subj_table(i)
+FROM s_subject
+WHERE SUBSTR(subj_code,1,2) = 'IS'
+AND SUBSTR(subj_code,-1) = i;
+END LOOP;
 
-  IF NOT fac_cur%ISOPEN THEN
-     OPEN fac_cur;
-  END IF;
+DBMS_OUTPUT.PUT_LINE('INFORMATION SYSTEMS SUBJECT CLUSTER');
+DBMS_OUTPUT.PUT_LINE('===================================');
 
-  LOOP
-     FETCH fac_cur INTO v_fac_code, v_fac_name;
-
-     IF fac_cur%FOUND THEN
-        DBMS_OUTPUT.PUT_LINE(v_fac_code || ' - ' || v_fac_name);
-     END IF;
-
-     EXIT WHEN fac_cur%NOTFOUND;
-  END LOOP;
-
-  DBMS_OUTPUT.PUT_LINE('Total rows: ' || fac_cur%ROWCOUNT);
-
-  CLOSE fac_cur;
+FOR i IN is_subj_table.FIRST..is_subj_table.LAST LOOP
+DBMS_OUTPUT.PUT_LINE(is_subj_table(i).subj_code || ' - ' || is_subj_table(i).subj_name);
+END LOOP;
 
 END;
 /
+
+
+
+
+
+
 
 
 
@@ -87,35 +47,35 @@ SET SERVEROUTPUT ON
 
 DECLARE
 
-  CURSOR fac_cur IS 
-     SELECT *
-     FROM s_faculty;
+CURSOR fac_cur IS 
+SELECT *
+FROM s_faculty;
 
-  v_fac fac_cur%ROWTYPE;
+v_fac fac_cur%ROWTYPE;
 
 BEGIN
 
-  IF NOT fac_cur%ISOPEN THEN 
-     OPEN fac_cur;
-  END IF;
+IF NOT fac_cur%ISOPEN THEN 
+OPEN fac_cur;
+END IF;
 
-  LOOP
-     FETCH fac_cur INTO v_fac;
+LOOP
+FETCH fac_cur INTO v_fac;
 
-     IF fac_cur%FOUND THEN
-        DBMS_OUTPUT.PUT_LINE(v_fac.fac_code || ' - ' || v_fac.fac_name);
-     END IF;
+IF fac_cur%FOUND THEN
+DBMS_OUTPUT.PUT_LINE(v_fac.fac_code || ' - ' || v_fac.fac_name);
+END IF;
 
-     EXIT WHEN fac_cur%NOTFOUND;
+EXIT WHEN fac_cur%NOTFOUND;
 
-  END LOOP;
+END LOOP;
 
-  DBMS_OUTPUT.PUT_LINE('Total number of rows: ' || fac_cur%ROWCOUNT);
+DBMS_OUTPUT.PUT_LINE('Total number of rows: ' || fac_cur%ROWCOUNT);
 
-  CLOSE fac_cur;
+CLOSE fac_cur;
 
 END;
-/          
+/
 
 
 
@@ -129,83 +89,37 @@ SET SERVEROUTPUT ON
 
 DECLARE
 
-  CURSOR dip_cur IS 
-     SELECT *
-     FROM s_diploma;
-
-  v_dip dip_cur%ROWTYPE;
-
-BEGIN
-
-  IF NOT dip_cur%ISOPEN THEN
-     OPEN dip_cur;
-  END IF;
-
-  FETCH dip_cur INTO v_dip;
-
-  WHILE dip_cur%FOUND LOOP
-
-     DBMS_OUTPUT.PUT_LINE(v_dip.dip_code || ' - ' || v_dip.dip_name);
-
-     FETCH dip_cur INTO v_dip;
-
-  END LOOP;
-
-  DBMS_OUTPUT.PUT_LINE('Total Number of rows: ' || dip_cur%ROWCOUNT);
-
-  CLOSE dip_cur;
-
-END;
-/          
-
-
-
-CURSOR FOR LOOP
-
-
-
-SET SERVEROUTPUT ON
-
-DECLARE
-
-CURSOR dip_cur IS
-SELECT * 
+CURSOR dip_cur IS 
+SELECT *
 FROM s_diploma;
 
+v_dip dip_cur%ROWTYPE;
+
 BEGIN
 
-FOR v_dip IN dip_cur LOOP
+IF NOT dip_cur%ISOPEN THEN
+OPEN dip_cur;
+END IF;
 
-DBMS_OUTPUT.PUT_LINE(v_dip.dip_code || ' - ' ||  v_dip.dip_name);
+FETCH dip_cur INTO v_dip;
+
+WHILE dip_cur%FOUND LOOP
+
+DBMS_OUTPUT.PUT_LINE(v_dip.dip_code || ' - ' || v_dip.dip_name);
+
+FETCH dip_cur INTO v_dip;
 
 END LOOP;
 
-END;
-/       
+DBMS_OUTPUT.PUT_LINE('Total Number of rows: ' || dip_cur%ROWCOUNT);
 
-
-
-CURSOR FOR LOOP PARAMETIZED
-
-
-
-SET SERVEROUTPUT ON
-
-DECLARE
-
-  CURSOR dip_cur(p_fac_code s_diploma.fac_code%TYPE) IS
-     SELECT *
-     FROM s_diploma
-     WHERE fac_code = p_fac_code;
-
-BEGIN
-
-  FOR v_dip IN dip_cur('NS') LOOP
-     DBMS_OUTPUT.PUT_LINE(v_dip.dip_code || ' - ' || v_dip.dip_name);
-  END LOOP;
+CLOSE dip_cur;
 
 END;
-/          
+/
+
+
+
 
 
 
@@ -217,32 +131,32 @@ SET SERVEROUTPUT ON
 
 DECLARE
 
-  CURSOR fac_cur IS 
-     SELECT * 
-     FROM s_faculty;
+CURSOR fac_cur IS 
+SELECT * 
+FROM s_faculty;
 
-  CURSOR dip_cur(p_fac_code s_diploma.fac_code%TYPE) IS
-     SELECT *
-     FROM s_diploma
-     WHERE fac_code = p_fac_code;
+CURSOR dip_cur(p_fac_code s_diploma.fac_code%TYPE) IS
+SELECT *
+FROM s_diploma
+WHERE fac_code = p_fac_code;
 
 BEGIN
 
-  FOR v_fac IN fac_cur LOOP
+FOR v_fac IN fac_cur LOOP
 
-     DBMS_OUTPUT.PUT_LINE('FACULTY: ' || v_fac.fac_name);
-     DBMS_OUTPUT.PUT_LINE('---------------------------------------------------');
+DBMS_OUTPUT.PUT_LINE('FACULTY: ' || v_fac.fac_name);
+DBMS_OUTPUT.PUT_LINE('---------------------------------------------------');
 
-     FOR v_dip IN dip_cur(v_fac.fac_code) LOOP
+FOR v_dip IN dip_cur(v_fac.fac_code) LOOP
 
-        DBMS_OUTPUT.PUT_LINE('   ' || v_dip.dip_code || ' - ' || v_dip.dip_name);
+DBMS_OUTPUT.PUT_LINE(' ' || v_dip.dip_code || ' - ' || v_dip.dip_name);
 
-     END LOOP;
+END LOOP;
 
-  END LOOP;
+END LOOP;
 
 END;
-/        
+/
 
 
 
@@ -254,27 +168,27 @@ SET SERVEROUTPUT ON;
 
 DECLARE
 
-  CURSOR test_cur IS
-     SELECT f.fac_code, d.dip_code
-     FROM s_faculty f, s_diploma d
-     WHERE f.fac_code = d.fac_code
-     ORDER BY f.fac_code;
+CURSOR test_cur IS
+SELECT f.fac_code, d.dip_code
+FROM s_faculty f, s_diploma d
+WHERE f.fac_code = d.fac_code
+ORDER BY f.fac_code;
 
-  v_rec test_cur%ROWTYPE;
+v_rec test_cur%ROWTYPE;
 
 BEGIN
 
-  OPEN test_cur;
+OPEN test_cur;
 
-  LOOP
-     FETCH test_cur INTO v_rec;
-     EXIT WHEN test_cur%NOTFOUND;
+LOOP
+FETCH test_cur INTO v_rec;
+EXIT WHEN test_cur%NOTFOUND;
 
-     DBMS_OUTPUT.PUT_LINE(v_rec.fac_code || ' - ' || v_rec.dip_code);
+DBMS_OUTPUT.PUT_LINE(v_rec.fac_code || ' - ' || v_rec.dip_code);
 
-  END LOOP;
+END LOOP;
 
-  CLOSE test_cur;
+CLOSE test_cur;
 
 END;
 /
