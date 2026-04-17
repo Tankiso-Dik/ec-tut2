@@ -1,277 +1,280 @@
-DML + SQL%ROWCOUNT, %ROWTYPE, User-defined, CASE, Variables + calculations, 
-SQL%FOUND, SQL%NOTFOUND, SAVEPOINT, LOOPS
+INDEX BY records must practice
 
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-Template 1 — DML + SQL%ROWCOUNT
-Insert
-SET SERVEROUTPUT ON
-
-BEGIN
-INSERT INTO s_student
-VALUES (98004556, 'LEROKE', 'GD', 'M', SYSDATE);
-
-DBMS_OUTPUT.PUT_LINE(SQL%ROWCOUNT || ' Record (s) Successfully Added');
-END;
-/
-
-Update
-SET SERVEROUTPUT ON
-
-BEGIN
-UPDATE s_student
-SET initials = 'GO'
-WHERE studnr = 98004556;
-
-DBMS_OUTPUT.PUT_LINE(SQL%ROWCOUNT || ' Record (s) Successfully Modified');
-END;
-/
-
-Delete
-SET SERVEROUTPUT ON
-
-BEGIN
-DELETE FROM s_student
-WHERE studnr = 98004556;
-
-DBMS_OUTPUT.PUT_LINE(SQL%ROWCOUNT || ' Record(s) Successfully Removed');
-END;
-/
-
-Undo
-ROLLBACK;
-
-This whole pattern is straight from Question 3 of the memo.
-
-
-
-
-
-
-
-
-
-
-
-Template 2 — %ROWTYPE
-SET SERVEROUTPUT ON
-
-DECLARE
-subj_rec s_subject%ROWTYPE;
-v_msg VARCHAR2(4);
-BEGIN
-SELECT *
-INTO subj_rec
-FROM s_subject
-WHERE subj_code = '&subj_code';
-
-IF subj_rec.prereq IS NULL THEN
-v_msg := 'No';
-ELSE
-v_msg := 'Yes';
-END IF;
-
-DBMS_OUTPUT.PUT_LINE('Subject Details');
-DBMS_OUTPUT.PUT_LINE('=======================================');
-DBMS_OUTPUT.PUT_LINE('Subject name: ' || subj_rec.subj_code || '-' || subj_rec.subj_name);
-DBMS_OUTPUT.PUT_LINE('Costs: ' || TO_CHAR(subj_rec.subj_fee, 'L09,999.00'));
-DBMS_OUTPUT.PUT_LINE('Prerequisite: ' || v_msg);
-END;
-/
-
-That is the main %ROWTYPE ST1 pattern.
-
-
-
-
-
-
-
-Template 3 — User-defined record + aggregates
-SET SERVEROUTPUT ON
-DEFINE student_number = 96445566
-
-DECLARE
-TYPE student_details_rec_type IS RECORD
-(
-studnr s_student.studnr%TYPE,
-initials s_student.initials%TYPE,
-surname s_student.surname%TYPE,
-num_subj NUMBER(2),
-total_fee NUMBER(6,2),
-dip_name s_diploma.dip_name%TYPE,
-fac_name s_faculty.fac_name%TYPE
-);
-
-student_details_rec student_details_rec_type;
-BEGIN
-SELECT s.studnr,
-s.initials,
-s.surname,
-COUNT(su.subj_code),
-SUM(su.subj_fee),
-d.dip_name,
-f.fac_name
-INTO student_details_rec
-FROM s_student s, s_registration r, s_subject su, s_diploma d, s_faculty f
-WHERE s.studnr = r.studnr
-AND r.subj_code = su.subj_code
-AND su.dip_code = d.dip_code
-AND d.fac_code = f.fac_code
-AND s.studnr = &student_number
-GROUP BY s.studnr, s.initials, s.surname, d.dip_name, f.fac_name;
-
-DBMS_OUTPUT.PUT_LINE('Student Details');
-DBMS_OUTPUT.PUT_LINE('=======================');
-DBMS_OUTPUT.PUT_LINE(student_details_rec.studnr || ' ' ||
-student_details_rec.initials || ' ' ||
-student_details_rec.surname);
-DBMS_OUTPUT.PUT_LINE('=======================');
-DBMS_OUTPUT.PUT_LINE('Faculty : ' || student_details_rec.fac_name);
-DBMS_OUTPUT.PUT_LINE('Diploma : ' || student_details_rec.dip_name);
-DBMS_OUTPUT.PUT_LINE('Number of subjects : ' || student_details_rec.num_subj);
-DBMS_OUTPUT.PUT_LINE('Total Amount due : ' ||
-TO_CHAR(student_details_rec.total_fee, 'L09,999.00'));
-END;
-/
-
-That is the big Stage 8–10 exam pattern from Question 5.
-
-
-
-
-
-
-1. CASE statement template
 
 SET SERVEROUTPUT ON
 
 DECLARE
-v_grade VARCHAR2(5);
-v_mark NUMBER(3) := &mark;
-BEGIN
-v_grade :=
-CASE
-WHEN v_mark >= 90 THEN 'A'
-WHEN v_mark >= 80 THEN 'B'
-WHEN v_mark >= 70 THEN 'C'
-WHEN v_mark >= 60 THEN 'D'
-WHEN v_mark >= 50 THEN 'E'
-ELSE 'Fail'
-END;
+ TYPE is_subj_table_type IS TABLE OF
+   s_subject%ROWTYPE INDEX BY BINARY_INTEGER;
 
-DBMS_OUTPUT.PUT_LINE('Mark = ' || v_mark || ' Result is ' || v_grade);
+ is_subj_table is_subj_table_type;
+
+BEGIN
+ FOR i IN 1..3 LOOP
+   SELECT *
+   INTO is_subj_table(i)
+   FROM s_subject
+   WHERE SUBSTR(subj_code,1,2) = 'IS'
+   AND SUBSTR(subj_code,-1) = i;
+ END LOOP;
+
+ DBMS_OUTPUT.PUT_LINE('INFORMATION SYSTEMS SUBJECT CLUSTER');
+ DBMS_OUTPUT.PUT_LINE('===================================');
+
+ FOR i IN is_subj_table.FIRST..is_subj_table.LAST LOOP
+   DBMS_OUTPUT.PUT_LINE(is_subj_table(i).subj_code || ' - ' || is_subj_table(i).subj_name);
+ END LOOP;
+
+END;
+/       
+
+
+
+
+
+
+
+
+
+Explicit Cursor With Attributes
+
+
+
+SET SERVEROUTPUT ON;
+
+DECLARE
+
+  CURSOR fac_cur IS
+     SELECT fac_code, fac_name
+     FROM s_faculty;
+
+  v_fac_code s_faculty.fac_code%TYPE;
+  v_fac_name s_faculty.fac_name%TYPE;
+
+BEGIN
+
+  IF NOT fac_cur%ISOPEN THEN
+     OPEN fac_cur;
+  END IF;
+
+  LOOP
+     FETCH fac_cur INTO v_fac_code, v_fac_name;
+
+     IF fac_cur%FOUND THEN
+        DBMS_OUTPUT.PUT_LINE(v_fac_code || ' - ' || v_fac_name);
+     END IF;
+
+     EXIT WHEN fac_cur%NOTFOUND;
+  END LOOP;
+
+  DBMS_OUTPUT.PUT_LINE('Total rows: ' || fac_cur%ROWCOUNT);
+
+  CLOSE fac_cur;
+
 END;
 /
 
 
-2. Variables + calculations + TO_CHAR template
+
+Explicit Cursor Using ROWTYPE
 
 SET SERVEROUTPUT ON
 
 DECLARE
-vHours NUMBER(7,2) := &hours;
-vRate NUMBER(7,2) := &rate;
-vTaxRate NUMBER(5,2) := 0.28;
-TotalTax NUMBER(7,2);
-vGrossPay NUMBER(7,2);
-vNetPay NUMBER(7,2);
-vAnnualSal NUMBER(7,2);
+
+  CURSOR fac_cur IS 
+     SELECT *
+     FROM s_faculty;
+
+  v_fac fac_cur%ROWTYPE;
+
 BEGIN
-vGrossPay := vHours * vRate;
-TotalTax := vTaxRate * vGrossPay;
-vNetPay := vGrossPay - TotalTax;
-vAnnualSal := vGrossPay * 12;
 
-DBMS_OUTPUT.PUT_LINE('The gross pay is ' || TO_CHAR(vGrossPay,'fmL99,999.99'));
-DBMS_OUTPUT.PUT_LINE('The total tax is ' || TO_CHAR(TotalTax,'fmL99,999.99'));
-DBMS_OUTPUT.PUT_LINE('The Net pay is ' || TO_CHAR(vNetPay,'fmL99,999.99'));
-DBMS_OUTPUT.PUT_LINE('The Annual Salary is ' || TO_CHAR(vAnnualSal,'fmL99,999.99'));
+  IF NOT fac_cur%ISOPEN THEN 
+     OPEN fac_cur;
+  END IF;
+
+  LOOP
+     FETCH fac_cur INTO v_fac;
+
+     IF fac_cur%FOUND THEN
+        DBMS_OUTPUT.PUT_LINE(v_fac.fac_code || ' - ' || v_fac.fac_name);
+     END IF;
+
+     EXIT WHEN fac_cur%NOTFOUND;
+
+  END LOOP;
+
+  DBMS_OUTPUT.PUT_LINE('Total number of rows: ' || fac_cur%ROWCOUNT);
+
+  CLOSE fac_cur;
+
 END;
-/
+/          
 
 
 
-SQL%FOUND
 
 
-IF SQL%FOUND THEN
-DBMS_OUTPUT.PUT_LINE('Student record found and updated');
-ELSE
-DBMS_OUTPUT.PUT_LINE('No student record was updated');
-END IF;
-END;
-/
+Explicit Cursor WHILE LOOP
 
 
-IF SQL%NOTFOUND THEN
-DBMS_OUTPUT.PUT_LINE('No record was removed');
-ELSE
-DBMS_OUTPUT.PUT_LINE('Record removed successfully');
-END IF;
-END;
-/
-
-
-SAVEPOINT
 
 SET SERVEROUTPUT ON
 
-SAVEPOINT before_change;
+DECLARE
+
+  CURSOR dip_cur IS 
+     SELECT *
+     FROM s_diploma;
+
+  v_dip dip_cur%ROWTYPE;
 
 BEGIN
-UPDATE s_student
-SET surname = 'MOLEFE'
-WHERE studnr = 980004556;
 
-DBMS_OUTPUT.PUT_LINE(SQL%ROWCOUNT }} ' record (s) changed');
+  IF NOT dip_cur%ISOPEN THEN
+     OPEN dip_cur;
+  END IF;
+
+  FETCH dip_cur INTO v_dip;
+
+  WHILE dip_cur%FOUND LOOP
+
+     DBMS_OUTPUT.PUT_LINE(v_dip.dip_code || ' - ' || v_dip.dip_name);
+
+     FETCH dip_cur INTO v_dip;
+
+  END LOOP;
+
+  DBMS_OUTPUT.PUT_LINE('Total Number of rows: ' || dip_cur%ROWCOUNT);
+
+  CLOSE dip_cur;
+
 END;
-/
-
-ROLLBACK TO before_change;
+/          
 
 
-LOOPS
 
-Easy rule
-BASIC LOOP needs EXIT WHEN
-WHILE LOOP needs a changing condition
-FOR LOOP is the easiest because Oracle manages the counter
+CURSOR FOR LOOP
 
 
-FOR LOOP
 
 SET SERVEROUTPUT ON
 
+DECLARE
+
+CURSOR dip_cur IS
+SELECT * 
+FROM s_diploma;
+
 BEGIN
-FOR i IN 1..5 LOOP
-DBMS_OUTPUT.PUT_LINE('Number : ' || i);
+
+FOR v_dip IN dip_cur LOOP
+
+DBMS_OUTPUT.PUT_LINE(v_dip.dip_code || ' - ' ||  v_dip.dip_name);
+
 END LOOP;
-END;
-/
 
-WHILE LOOP
+END;
+/       
+
+
+
+CURSOR FOR LOOP PARAMETIZED
+
+
 
 SET SERVEROUTPUT ON
 
 DECLARE
-i NUMBER := 1;
+
+  CURSOR dip_cur(p_fac_code s_diploma.fac_code%TYPE) IS
+     SELECT *
+     FROM s_diploma
+     WHERE fac_code = p_fac_code;
+
 BEGIN
-WHILE i <= 5 LOOP
-DBMS_OUTPUT.PUT_LINE('Number : ' || i);
-i := i + 1;
-END LOOP;
+
+  FOR v_dip IN dip_cur('NS') LOOP
+     DBMS_OUTPUT.PUT_LINE(v_dip.dip_code || ' - ' || v_dip.dip_name);
+  END LOOP;
+
+END;
+/          
+
+
+
+CURSOR FOR LOOP NESTED
+
+
+
+SET SERVEROUTPUT ON
+
+DECLARE
+
+  CURSOR fac_cur IS 
+     SELECT * 
+     FROM s_faculty;
+
+  CURSOR dip_cur(p_fac_code s_diploma.fac_code%TYPE) IS
+     SELECT *
+     FROM s_diploma
+     WHERE fac_code = p_fac_code;
+
+BEGIN
+
+  FOR v_fac IN fac_cur LOOP
+
+     DBMS_OUTPUT.PUT_LINE('FACULTY: ' || v_fac.fac_name);
+     DBMS_OUTPUT.PUT_LINE('---------------------------------------------------');
+
+     FOR v_dip IN dip_cur(v_fac.fac_code) LOOP
+
+        DBMS_OUTPUT.PUT_LINE('   ' || v_dip.dip_code || ' - ' || v_dip.dip_name);
+
+     END LOOP;
+
+  END LOOP;
+
+END;
+/        
+
+
+
+
+
+
+
+SET SERVEROUTPUT ON;
+
+DECLARE
+
+  CURSOR test_cur IS
+     SELECT f.fac_code, d.dip_code
+     FROM s_faculty f, s_diploma d
+     WHERE f.fac_code = d.fac_code
+     ORDER BY f.fac_code;
+
+  v_rec test_cur%ROWTYPE;
+
+BEGIN
+
+  OPEN test_cur;
+
+  LOOP
+     FETCH test_cur INTO v_rec;
+     EXIT WHEN test_cur%NOTFOUND;
+
+     DBMS_OUTPUT.PUT_LINE(v_rec.fac_code || ' - ' || v_rec.dip_code);
+
+  END LOOP;
+
+  CLOSE test_cur;
+
 END;
 /
