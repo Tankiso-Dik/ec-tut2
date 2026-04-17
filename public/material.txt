@@ -162,33 +162,72 @@ END;
 
 
 
-
+OUTPUT CONTROL
 
 SET SERVEROUTPUT ON;
 
 DECLARE
 
-CURSOR test_cur IS
-SELECT f.fac_code, d.dip_code
-FROM s_faculty f, s_diploma d
-WHERE f.fac_code = d.fac_code
-ORDER BY f.fac_code;
+   CURSOR test_cur IS
+      SELECT f.fac_code, f.fac_name, d.dip_code, d.dip_name
+      FROM s_faculty f, s_diploma d
+      WHERE f.fac_code = d.fac_code
+      ORDER BY f.fac_code;
 
-v_rec test_cur%ROWTYPE;
+   v_rec test_cur%ROWTYPE;
+   v_prev_fac_code s_faculty.fac_code%TYPE := NULL;
 
 BEGIN
 
-OPEN test_cur;
+   OPEN test_cur;
 
-LOOP
-FETCH test_cur INTO v_rec;
-EXIT WHEN test_cur%NOTFOUND;
+   LOOP
+      FETCH test_cur INTO v_rec;
+      EXIT WHEN test_cur%NOTFOUND;
 
-DBMS_OUTPUT.PUT_LINE(v_rec.fac_code || ' - ' || v_rec.dip_code);
+      IF v_prev_fac_code IS NULL OR v_prev_fac_code != v_rec.fac_code THEN
+         DBMS_OUTPUT.PUT_LINE('FACULTY: ' || v_rec.fac_name);
+      END IF;
 
-END LOOP;
+      DBMS_OUTPUT.PUT_LINE('   ' || v_rec.dip_code);
 
-CLOSE test_cur;
+      v_prev_fac_code := v_rec.fac_code;
+
+   END LOOP;
+
+   CLOSE test_cur;
+
+END;
+/
+
+
+
+
+Exception Block
+
+SET SERVEROUTPUT ON;
+
+DECLARE
+
+   v_author_id s_author.author_id%TYPE := '&author_id';
+   v_book_name s_book.book_name%TYPE;
+
+BEGIN
+
+   SELECT book_name
+   INTO v_book_name
+   FROM s_book
+   WHERE author_id = v_author_id;
+
+   DBMS_OUTPUT.PUT_LINE(v_book_name);
+
+EXCEPTION
+
+   WHEN NO_DATA_FOUND THEN
+      DBMS_OUTPUT.PUT_LINE(v_author_id || ' does not exist');
+
+   WHEN TOO_MANY_ROWS THEN
+      DBMS_OUTPUT.PUT_LINE('Many books under ' || v_author_id);
 
 END;
 /
